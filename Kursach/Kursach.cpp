@@ -15,7 +15,6 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса глав�
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -131,9 +130,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
@@ -142,14 +138,61 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Добавьте сюда любой код прорисовки, использующий HDC...
-            EndPaint(hWnd, &ps);
-        }
-        break;
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        // Кисти и перья
+        HBRUSH hBrushGray = CreateSolidBrush(RGB(169, 169, 169)); // Серый цвет для дороги
+        HBRUSH hBrushRed = CreateSolidBrush(RGB(255, 0, 0));      // Красный цвет светофоров
+        HBRUSH hBrushGreen = CreateSolidBrush(RGB(0, 255, 0));    // Зелёный цвет светофоров
+        HBRUSH hBrushHatch = CreateHatchBrush(HS_BDIAGONAL, RGB(255, 0, 0)); // Полосатый для ремонта
+        HPEN hPenWhite = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));          // Белый для разметки
+
+        // Координаты элементов дороги
+        int roadWidth = ps.rcPaint.right - 100; // Полная ширина дороги
+        int roadHeight = 300;                  // Высота секции дороги
+        int centerX = ps.rcPaint.right / 2;    // Центр окна
+        int centerY = ps.rcPaint.bottom / 2;   // Центр окна
+
+        // Рисуем дорогу
+        RECT road = { centerX - roadWidth / 2, centerY - roadHeight / 2,
+                      centerX + roadWidth / 2, centerY + roadHeight / 2 };
+        FillRect(hdc, &road, hBrushGray);
+
+        // Рисуем разделительную линию между полосами
+        SelectObject(hdc, hPenWhite);
+        MoveToEx(hdc, road.left, centerY, NULL);
+        LineTo(hdc, road.right, centerY);
+
+        // Рисуем ремонтную зону
+        int repairZoneWidth = roadWidth / 3; // Ширина ремонтной зоны (например, треть дороги)
+        RECT repairZone = { centerX - repairZoneWidth / 2, centerY - roadHeight / 2,
+                            centerX + repairZoneWidth / 2, centerY };
+        FillRect(hdc, &repairZone, hBrushHatch);
+
+        // Рисуем светофоры
+        int lightSize = 20; // Размер светофоров
+        RECT leftTrafficLight = { repairZone.left - lightSize - 10, centerY - lightSize - 10,
+                                  repairZone.left - 10, centerY + lightSize - 10 };
+        RECT rightTrafficLight = { repairZone.right + 10, centerY - lightSize - 10,
+                                   repairZone.right + lightSize + 10, centerY + lightSize - 10 };
+
+        // Устанавливаем сигнал светофоров (красный)
+        FillRect(hdc, &leftTrafficLight, hBrushRed);
+        FillRect(hdc, &rightTrafficLight, hBrushRed);
+
+        // Очистка ресурсов
+        DeleteObject(hBrushGray);
+        DeleteObject(hBrushRed);
+        DeleteObject(hBrushGreen);
+        DeleteObject(hBrushHatch);
+        DeleteObject(hPenWhite);
+
+        EndPaint(hWnd, &ps);
+    }
+    break;
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -157,24 +200,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
-}
-
-// Обработчик сообщений для окна "О программе".
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
 }
