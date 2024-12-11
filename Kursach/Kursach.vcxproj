@@ -127,10 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Car.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Kursach.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TrafficLight.h" />
+    <ClInclude Include="TrafficSimulator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Kursach.cpp" />
