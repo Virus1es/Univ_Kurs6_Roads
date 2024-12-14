@@ -98,11 +98,21 @@ public:
         HBRUSH hBrushRed = CreateSolidBrush(RGB(255, 0, 0));
         HBRUSH hBrushGreen = CreateSolidBrush(RGB(0, 255, 0));
 
-        RECT leftLightRect = { repairZone.left - 30, centerY - 20,
-                               repairZone.left - 10, centerY + 20 };
-        RECT rightLightRect = { repairZone.right + 10, centerY - 20,
-                                repairZone.right + 30, centerY + 20 };
+        // Определяем координаты для светофоров
+        int trafficLightWidth = 20; // Ширина светофора
+        int trafficLightHeight = 20; // Высота светофора
+        int spacing = 20; // Расстояние между светофорами
+        int offsetY = -30; // Смещение по Y
 
+        // Координаты для левого светофора
+        RECT leftLightRect = { repairZone.right + 10, centerY - trafficLightHeight / 2 + offsetY,
+                               repairZone.right + 10 + trafficLightWidth, centerY + trafficLightHeight / 2 + offsetY };
+
+        // Координаты для правого светофора (сдвинут вниз)
+        RECT rightLightRect = { repairZone.right + 10, centerY + trafficLightHeight / 2 + spacing + offsetY,
+                                repairZone.right + 10 + trafficLightWidth, centerY + trafficLightHeight / 2 + spacing + trafficLightHeight + offsetY };
+
+        // Рисуем светофоры
         FillRect(hdc, &leftLightRect,
             leftTrafficLight.getCurrentState() == GreenFirstDirection ? hBrushGreen : hBrushRed);
         FillRect(hdc, &rightLightRect,

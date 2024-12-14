@@ -385,15 +385,6 @@ void RenderScene(HDC hdc, HWND hWnd) {
                         centerX + roadWidth / 6, centerY };
     FillRect(hdc, &repairZone, hBrushHatch);
 
-    // Светофоры
-    RECT leftTrafficLight = { repairZone.left - 30, centerY - 20,
-                              repairZone.left - 10, centerY + 20 };
-    RECT rightTrafficLight = { repairZone.right + 10, centerY - 20,
-                               repairZone.right + 30, centerY + 20 };
-
-    FillRect(hdc, &leftTrafficLight, hBrushRed);
-    FillRect(hdc, &rightTrafficLight, hBrushRed);
-
     // Отрисовка потока машин
     trafficSimulator->draw(hdc);
 
