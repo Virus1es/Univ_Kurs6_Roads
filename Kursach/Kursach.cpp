@@ -4,6 +4,8 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <commctrl.h>
+#include <fstream>
 
 #define MAX_LOADSTRING 100
 
@@ -20,6 +22,8 @@ std::thread calculationThread;
 int roadWidth, roadHeight, centerX, centerY;
 
 RECT repairZone, trafficLightLeft, trafficLightRight;
+
+bool shouldSave = false;
 
 double greenDuration = 40.0;
 double redDuration = 55.0;
@@ -201,12 +205,12 @@ INT_PTR CALLBACK ResultDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 INT_PTR CALLBACK InputValuesDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     static double* inputValues;
+    bool isChecked;
 
     switch (message) {
     case WM_INITDIALOG:
         inputValues = reinterpret_cast<double*>(lParam);
         return (INT_PTR)TRUE;
-
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK) {
             // Получаем значения из текстовых полей
@@ -220,6 +224,8 @@ INT_PTR CALLBACK InputValuesDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
             GetDlgItemTextA(hDlg, IDC_VALUER, buffer, sizeof(buffer));
             inputValues[2] = std::stod(buffer);
 
+            shouldSave = IsDlgButtonChecked(hDlg, IDC_CHECKSAVE);
+
             EndDialog(hDlg, IDOK);
             return (INT_PTR)TRUE;
         }
@@ -227,7 +233,13 @@ INT_PTR CALLBACK InputValuesDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
             EndDialog(hDlg, IDCANCEL);
             return (INT_PTR)TRUE;
         }
-        break;
+        else if (LOWORD(wParam) == IDC_CHECKSAVE) {
+            // Получаем текущее состояние
+            isChecked = IsDlgButtonChecked(hDlg, IDC_CHECKSAVE);
+            // Инвертируем и устанавливаем новое состояние
+            CheckDlgButton(hDlg, IDC_CHECKSAVE, !isChecked);
+            return (INT_PTR)TRUE;
+        }
     }
     return (INT_PTR)FALSE;
 }
@@ -247,7 +259,7 @@ void OpenLightDurationDialog(HWND hWnd) {
     }
 }
 
-void CalculateAndShowResults(double N1, double N2, double R) {
+std::string CalculateAndShowResults(double N1, double N2, double R) {
     // Выполняем расчеты
     std::string result = trafficSimulator->findOptimalGreenTimes(N1, N2, R);
 
@@ -256,6 +268,8 @@ void CalculateAndShowResults(double N1, double N2, double R) {
 
     // Отобразите результаты в диалоговом окне
     DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_RESULT_DIALOG), NULL, ResultDlgProc, reinterpret_cast<LPARAM>(resultPtr));
+
+    return result;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -279,9 +293,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             double inputValues[3] = { 0.0, 0.0, 0.0 };
             if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_INPUT_VALUES), hWnd, InputValuesDlgProc, reinterpret_cast<LPARAM>(inputValues)) == IDOK) {
                 // Если пользователь нажал OK, создаем поток для выполнения расчетов
-                std::thread calculationThread([inputValues]() {
+                std::thread calculationThread([inputValues, hWnd]() {
                     try {
-                        CalculateAndShowResults(inputValues[0], inputValues[1], inputValues[2]);
+                        std::string result = CalculateAndShowResults(inputValues[0], inputValues[1], inputValues[2]);
+
+                        std::string* resultPtr = new std::string(result);
+
+                        // Проверяем состояние чекбокса
+                        if (shouldSave) {
+                            // Сохраняем данные в файл
+                            std::ofstream outFile("../output.txt", std::ios::app);
+                            if (outFile.is_open()) {
+                                outFile << "Интенсивность дороги 1: " << inputValues[0] << "\n";
+                                outFile << "Интенсивность дороги 2: " << inputValues[1] << "\n";
+                                outFile << "Время красного света: " << inputValues[2] << "\n";
+                                outFile << "------------------------\n";
+                                outFile << "Результат вычислений: " << result << "\n"; // Записываем результат
+                                outFile.close();
+                            }
+                        }
                     }
                     catch (const std::exception& e) {
                         // Обработка исключения, например, логирование
