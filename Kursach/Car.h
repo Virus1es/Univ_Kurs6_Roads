@@ -43,8 +43,8 @@ public:
             }
             else {
                 // Проверка на светофор для верхней дороги
-                if (canMove(lightState) && y > centerY && x > repairZone.right + 200) { // Если машина на нижней дороге
-                     // Если не достигли светофора на 100 пикселей
+                if (canMove(lightState) && y > centerY && x > repairZone.right + 150) { // Если машина на нижней дороге
+                     // Если не достигли светофора на 150 пикселей
                     x -= speed; // Движение влево
                 }
                 else if (x <= repairZone.right + 200)
@@ -73,7 +73,13 @@ public:
     // может ли машина ехать
     bool canMove(LightState lightState) const {
         // Если светофор красный, и машина не в зоне ремонта, она не может двигаться
-        return !(lightState == RedBothDirections && !isInRepairZone());
+
+        if (direction) {
+            return (lightState == GreenFirstDirection || isInRepairZone());
+        }
+        else {
+            return (lightState == GreenSecondDirection || isInRepairZone());
+        }
     }
 
     // находиться ли машина на объезде зоны ремонта

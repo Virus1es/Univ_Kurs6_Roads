@@ -3,7 +3,8 @@
 // состояния сигналов светофоров
 enum LightState {
     GreenFirstDirection,
-    RedBothDirections,
+    RedBothDirectionsAfterFirst,
+    RedBothDirectionsAfterSecond,
     GreenSecondDirection
 };
 
@@ -26,16 +27,21 @@ public:
             // Переходим к следующему состоянию
             switch (currentState) {
             case GreenFirstDirection:
-                currentState = RedBothDirections;
+                currentState = RedBothDirectionsAfterFirst;
                 timer = redDuration;
                 break;
-            case RedBothDirections:
+            case RedBothDirectionsAfterFirst:
                 currentState = GreenSecondDirection; // Правый светофор остается зеленым
                 timer = greenDuration;
                 break;
             case GreenSecondDirection:
-                currentState = RedBothDirections;
+                currentState = RedBothDirectionsAfterSecond;
                 timer = redDuration;
+                break;
+
+            case RedBothDirectionsAfterSecond:
+                currentState = GreenFirstDirection; // Правый светофор остается зеленым
+                timer = greenDuration;
                 break;
             }
         }
