@@ -13,11 +13,24 @@ private:
     LightState currentState;
     double timer; // Таймер для текущего состояния
 
-    static constexpr double greenDuration = 40.0;   // Время зеленого света
-    static constexpr double redDuration = 55.0;     // Время красного света в обоих направлениях
+    double greenDuration;   // Время зеленого света
+    double redDuration;     // Время красного света в обоих направлениях
 
 public:
-    TrafficLight() : currentState(GreenFirstDirection), timer(greenDuration) {}
+    // Конструктор, который принимает значения для зеленого и красного света
+    TrafficLight(double greenDur, double redDur)
+        : currentState(GreenFirstDirection),
+        timer(greenDur),
+        greenDuration(greenDur),
+        redDuration(redDur) {
+    }
+
+    void setDurations(double greenDur, double redDur) {
+        greenDuration = greenDur;
+        redDuration = redDur;
+        timer = greenDuration; // сброс таймера на новое значение
+        currentState = GreenFirstDirection; // Сброс состояния
+    }
 
     // Обновляем состояние светофора
     void update(double deltaTime) {

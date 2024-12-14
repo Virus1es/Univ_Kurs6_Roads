@@ -27,11 +27,18 @@ private:
 public:
 
     TrafficSimulator(int roadWidth, int roadHeight, int centerX, int centerY,
-        RECT repairZone, RECT trafficLightLeft, RECT trafficLightRight)
+        RECT repairZone, RECT trafficLightLeft, RECT trafficLightRight, double greenDur, double redDur)
         : roadWidth(roadWidth), roadHeight(roadHeight), centerX(centerX), centerY(centerY),
         repairZone(repairZone),
         expDist1(1.0 / 12.0), expDist2(1.0 / 9.0),
-        timeUntilNextCarLeft(expDist1(rng)), timeUntilNextCarRight(expDist2(rng)) {
+        leftTrafficLight(greenDur, redDur), rightTrafficLight(greenDur, redDur),
+        timeUntilNextCarLeft(expDist1(rng)), timeUntilNextCarRight(expDist2(rng)) 
+    {
+    }
+
+    void updateTrafficLightDurations(double greenDur, double redDur) {
+        leftTrafficLight.setDurations(greenDur, redDur);
+        rightTrafficLight.setDurations(greenDur, redDur);
     }
 
     void update(double deltaTime) {
@@ -58,7 +65,6 @@ public:
             
             // Передаем состояние светофора, centerY и ссылку на TrafficSimulator
             car.move(lightState, centerY, cars);
-
         }
 
         // Удаляем автомобили, которые выехали за пределы дороги

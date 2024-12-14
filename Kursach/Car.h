@@ -86,10 +86,10 @@ public:
     bool isTooClose(const Car& other) const {
         if (direction == other.direction) { // Только для машин, движущихся в одном направлении
             if (direction) { // Если движение вправо
-                return (other.x > x && other.x - x < 80); // Если другая машина впереди и расстояние меньше 40
+                return (other.x > x && other.x - x < 80); // Если другая машина впереди и расстояние меньше 80
             }
             else { // Если движение влево
-                return (other.x < x && x - other.x < 80); // Если другая машина впереди и расстояние меньше 40
+                return (other.x < x && x - other.x < 80); // Если другая машина впереди и расстояние меньше 80
             }
         }
         return false;

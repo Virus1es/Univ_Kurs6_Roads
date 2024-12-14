@@ -1,6 +1,9 @@
 ﻿#include "framework.h"
 #include "Kursach.h"
 #include "TrafficSimulator.h"
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 #define MAX_LOADSTRING 100
 
@@ -9,6 +12,11 @@ HINSTANCE hInst;                                // текущий экземпл
 WCHAR szTitle[MAX_LOADSTRING];                  // Текст строки заголовка
 WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса главного окна
 TrafficSimulator* trafficSimulator;             // имитация потока машин
+std::thread simulationThread;                   // Поток для обновления симуляции
+std::mutex trafficMutex;                        // Мьютекс для синхронизации
+std::atomic<bool> stopSimulation(false);        // Флаг завершения потока
+double greenDuration = 40.0;
+double redDuration = 55.0;
 
 // Отправить объявления функций, включенных в этот модуль кода:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -73,6 +81,16 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
+void SimulationLoop() {
+    while (!stopSimulation) {
+        {
+            std::lock_guard<std::mutex> lock(trafficMutex);
+            trafficSimulator->update(2.0); // Обновляем симуляцию каждые 2 секунды
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Интервал обновления
+    }
+}
+
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance;
@@ -100,12 +118,73 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     RECT trafficLightRight = { repairZone.right + 10, centerY - 20,
                                repairZone.right + 30, centerY + 20 };
 
-    trafficSimulator = new TrafficSimulator(roadWidth, roadHeight, centerX, centerY, repairZone, trafficLightLeft, trafficLightRight);
+    trafficSimulator = new TrafficSimulator(roadWidth, roadHeight, 
+                                            centerX, centerY, 
+                                            repairZone, 
+                                            trafficLightLeft, trafficLightRight, 
+                                            greenDuration, redDuration);
+
+    simulationThread = std::thread(SimulationLoop);
 
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
     return TRUE;
+}
+
+INT_PTR CALLBACK LightDurationDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    static double* pGreenDuration;
+    static double* pRedDuration;
+
+    switch (message) {
+    case WM_INITDIALOG:
+        pGreenDuration = reinterpret_cast<double*>(lParam);
+        pRedDuration = pGreenDuration + 1;
+
+        // Установите текущие значения в текстовые поля
+        SetDlgItemInt(hDlg, IDC_GREEN_DURATION, static_cast<UINT>(*pGreenDuration), FALSE);
+        SetDlgItemInt(hDlg, IDC_RED_DURATION, static_cast<UINT>(*pRedDuration), FALSE);
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case IDOK: {
+            BOOL greenValid, redValid;
+            UINT greenValue = GetDlgItemInt(hDlg, IDC_GREEN_DURATION, &greenValid, FALSE);
+            UINT redValue = GetDlgItemInt(hDlg, IDC_RED_DURATION, &redValid, FALSE);
+
+            if (greenValid && redValid) {
+                *pGreenDuration = greenValue;
+                *pRedDuration = redValue;
+                EndDialog(hDlg, IDOK);
+            }
+            else {
+                MessageBox(hDlg, L"Введите корректные значения.", L"Ошибка", MB_OK | MB_ICONERROR);
+            }
+            return (INT_PTR)TRUE;
+        }
+        case IDCANCEL:
+            EndDialog(hDlg, IDCANCEL);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+// Вызов диалога
+void OpenLightDurationDialog(HWND hWnd) {
+    double durations[2] = { greenDuration, redDuration };
+
+    if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_LIGHT_DURATION), hWnd, LightDurationDlgProc, reinterpret_cast<LPARAM>(durations)) == IDOK) {
+        greenDuration = durations[0];
+        redDuration = durations[1];
+
+        // Обновляем TrafficSimulator с новыми значениями
+        trafficSimulator->updateTrafficLightDurations(greenDuration, redDuration);
+
+        MessageBox(hWnd, L"Настройки времени светофора обновлены.", L"Успех", MB_OK | MB_ICONINFORMATION);
+    }
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -117,6 +196,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         int wmId = LOWORD(wParam);
         switch (wmId)
         {
+        case IDD_LIGHT_DURATION: // обработчик для вызова диалога
+            OpenLightDurationDialog(hWnd);
+            break;
         case IDM_EXIT:
             DestroyWindow(hWnd);
             break;
@@ -143,8 +225,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+        stopSimulation = true; // Устанавливаем флаг остановки
+        if (simulationThread.joinable()) {
+            simulationThread.join(); // Ожидаем завершения потока
+        }
         delete trafficSimulator;
-        KillTimer(hWnd, 1); // Удаляем таймер перед выходом
         PostQuitMessage(0);
         break;
     default:
@@ -153,8 +238,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-void RenderScene(HDC hdc, HWND hWnd)
-{
+void RenderScene(HDC hdc, HWND hWnd) {
+    std::lock_guard<std::mutex> lock(trafficMutex); // Блокируем доступ к данным
     HBRUSH hBrushGray = CreateSolidBrush(RGB(169, 169, 169));
     HBRUSH hBrushRed = CreateSolidBrush(RGB(255, 0, 0));
     HBRUSH hBrushGreen = CreateSolidBrush(RGB(0, 255, 0));
