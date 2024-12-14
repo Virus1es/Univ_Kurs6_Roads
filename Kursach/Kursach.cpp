@@ -15,14 +15,24 @@ TrafficSimulator* trafficSimulator;             // имитация потока
 std::thread simulationThread;                   // Поток для обновления симуляции
 std::mutex trafficMutex;                        // Мьютекс для синхронизации
 std::atomic<bool> stopSimulation(false);        // Флаг завершения потока
+std::thread calculationThread;
+
+int roadWidth, roadHeight, centerX, centerY;
+
+RECT repairZone, trafficLightLeft, trafficLightRight;
+
 double greenDuration = 40.0;
 double redDuration = 55.0;
+
+
 
 // Отправить объявления функций, включенных в этот модуль кода:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void RenderScene(HDC hdc, HWND hWnd);     // Новая функция для отрисовки
+void RestartSimulation();                 // перезапуск симуляции
+INT_PTR CALLBACK ResultDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -106,16 +116,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     RECT rect;
     GetClientRect(hWnd, &rect);
 
-    int roadWidth = rect.right - 100;
-    int roadHeight = 300;
-    int centerX = rect.right / 2;
-    int centerY = rect.bottom / 2;
+    roadWidth = rect.right - 100;
+    roadHeight = 300;
+    centerX = rect.right / 2;
+    centerY = rect.bottom / 2;
 
-    RECT repairZone = { centerX - roadWidth / 6, centerY - roadHeight / 2,
+    repairZone = { centerX - roadWidth / 6, centerY - roadHeight / 2,
                         centerX + roadWidth / 6, centerY };
-    RECT trafficLightLeft = { repairZone.left - 30, centerY - 20,
+    trafficLightLeft = { repairZone.left - 30, centerY - 20,
                               repairZone.left - 10, centerY + 20 };
-    RECT trafficLightRight = { repairZone.right + 10, centerY - 20,
+    trafficLightRight = { repairZone.right + 10, centerY - 20,
                                repairZone.right + 30, centerY + 20 };
 
     trafficSimulator = new TrafficSimulator(roadWidth, roadHeight, 
@@ -172,6 +182,58 @@ INT_PTR CALLBACK LightDurationDlgProc(HWND hDlg, UINT message, WPARAM wParam, LP
     return (INT_PTR)FALSE;
 }
 
+INT_PTR CALLBACK ResultDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    static std::string* resultText;
+
+    switch (message) {
+    case WM_INITDIALOG:
+        resultText = reinterpret_cast<std::string*>(lParam);
+        SetDlgItemTextA(hDlg, IDC_RESULT_TEXT, resultText->c_str());
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK InputValuesDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    static double* inputValues;
+
+    switch (message) {
+    case WM_INITDIALOG:
+        inputValues = reinterpret_cast<double*>(lParam);
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK) {
+            // Получаем значения из текстовых полей
+            char buffer[256];
+            GetDlgItemTextA(hDlg, IDC_VALUEN1, buffer, sizeof(buffer));
+            inputValues[0] = std::stod(buffer); // Преобразуем строку в double
+
+            GetDlgItemTextA(hDlg, IDC_VALUEN2, buffer, sizeof(buffer));
+            inputValues[1] = std::stod(buffer);
+
+            GetDlgItemTextA(hDlg, IDC_VALUER, buffer, sizeof(buffer));
+            inputValues[2] = std::stod(buffer);
+
+            EndDialog(hDlg, IDOK);
+            return (INT_PTR)TRUE;
+        }
+        else if (LOWORD(wParam) == IDCANCEL) {
+            EndDialog(hDlg, IDCANCEL);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
 // Вызов диалога
 void OpenLightDurationDialog(HWND hWnd) {
     double durations[2] = { greenDuration, redDuration };
@@ -187,6 +249,17 @@ void OpenLightDurationDialog(HWND hWnd) {
     }
 }
 
+void CalculateAndShowResults(double N1, double N2, double R) {
+    // Выполняем расчеты
+    std::string result = trafficSimulator->findOptimalGreenTimes(N1, N2, R);
+
+    // Создаем новый объект std::string на куче
+    std::string* resultPtr = new std::string(result);
+
+    // Отобразите результаты в диалоговом окне
+    DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_RESULT_DIALOG), NULL, ResultDlgProc, reinterpret_cast<LPARAM>(resultPtr));
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -196,9 +269,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         int wmId = LOWORD(wParam);
         switch (wmId)
         {
+        case IDC_RESTART_BUTTON: // Обработчик для кнопки перезапуска
+            RestartSimulation();
+            break;
         case IDD_LIGHT_DURATION: // обработчик для вызова диалога
             OpenLightDurationDialog(hWnd);
             break;
+        case IDC_CALCULATE_BUTTON: // Обработчик для кнопки запуска расчетов
+        {
+            // Открываем диалог для ввода значений
+            double inputValues[3] = { 0.0, 0.0, 0.0 };
+            if (DialogBoxParam(hInst, MAKEINTRESOURCE(IDD_INPUT_VALUES), hWnd, InputValuesDlgProc, reinterpret_cast<LPARAM>(inputValues)) == IDOK) {
+                // Если пользователь нажал OK, создаем поток для выполнения расчетов
+                std::thread calculationThread([inputValues]() {
+                    try {
+                        CalculateAndShowResults(inputValues[0], inputValues[1], inputValues[2]);
+                    }
+                    catch (const std::exception& e) {
+                        // Обработка исключения, например, логирование
+                        std::cerr << "Ошибка в потоке расчетов: " << e.what() << std::endl;
+                    }
+                    });
+                calculationThread.detach(); // Отсоединяем поток, чтобы он работал независимо
+            }
+        }
+        break;
         case IDM_EXIT:
             DestroyWindow(hWnd);
             break;
@@ -236,6 +331,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
+}
+
+// перезапуск симуляции
+void RestartSimulation() {
+
+    // Остановить текущую симуляцию
+    stopSimulation = true;
+    if (simulationThread.joinable()) {
+        simulationThread.join(); // Ожидаем завершения потока
+    }
+
+    // Создать новый экземпляр TrafficSimulator с текущими значениями
+    trafficSimulator = new TrafficSimulator(roadWidth, roadHeight,
+        centerX, centerY,
+        repairZone,
+        trafficLightLeft, trafficLightRight,
+        greenDuration, redDuration);
+
+    // Запустить новый поток симуляции
+    stopSimulation = false;
+    simulationThread = std::thread(SimulationLoop);
+
+    MessageBox(NULL, L"Симуляция перезапущена.", L"Успех", MB_OK | MB_ICONINFORMATION);
 }
 
 void RenderScene(HDC hdc, HWND hWnd) {

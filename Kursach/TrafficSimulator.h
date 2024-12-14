@@ -1,14 +1,23 @@
 #pragma once
 
+#include <algorithm> // Для std::max
 #include <vector>
 #include <cstdlib>
 #include <random>
 #include <thread>
 #include <mutex>
+#include <iostream>
+#include <limits>
+#include <string>
+#include <sstream>      // Для std::ostringstream
+#include <iomanip> // Нужен для std::setprecision
+#include <cmath>
 #include "framework.h"
 #include "Kursach.h"
 #include "Car.h"
 #include "TrafficLight.h"
+
+using namespace std;
 
 class TrafficSimulator {
 private:
@@ -106,4 +115,44 @@ public:
             car.draw(hdc);
         }
     }
+
+    // Функция для расчета среднего времени ожидания
+    double calculateAverageWaitTime(double N1, double N2, double G1, double G2, double R) {
+        double totalCycleTime = G1 + G2 + R; // Общее время цикла
+        double waitTime1 = (N1 / (N1 + N2)) * (G1 + R / 2); // Среднее время ожидания для первого направления
+        double waitTime2 = (N2 / (N1 + N2)) * (G2 + R / 2); // Среднее время ожидания для второго направления
+        return waitTime1 + waitTime2; // Общее среднее время ожидания
+    }
+
+    // N1 - количество автомобилей, ожидающих проезда в первом направлении 
+    // N2 - количество автомобилей, ожидающих проезда во втором направлении
+    // R - время красного света
+    string findOptimalGreenTimes(double N1, double N2, double R) {
+        double minWaitTime = 1e9; // Инициализация с большим значением
+        double optimalG1 = 0.0;
+        double optimalG2 = 0.0;
+
+        // Пробегаем значения G1 от 1 до 60 секунд
+        for (double G1 = 1.0; G1 <= 120.0; G1 += 1.0) {
+            // Пробегаем значения G2 от 1 до 60 секунд
+            for (double G2 = 1.0; G2 <= 120.0; G2 += 1.0) {
+                double waitTime = calculateAverageWaitTime(N1, N2, G1, G2, R);
+                // Если текущее время ожидания меньше минимального, обновляем оптимальные значения
+                if (waitTime < minWaitTime) {
+                    minWaitTime = waitTime;
+                    optimalG1 = G1;
+                    optimalG2 = G2;
+                }
+            }
+        }
+        // Формируем строку с результатами
+        ostringstream result;
+        result << fixed << setprecision(2); // Устанавливаем фиксированное количество знаков после запятой
+        result << "Оптимальное время зеленого света для первого направления: " << optimalG1 << " секунд; "
+            << "Оптимальное время зеленого света для второго направления: " << optimalG2 << " секунд; "
+            << "Минимальное среднее время ожидания: " << minWaitTime << " секунд";
+
+        return result.str(); // Возвращаем строку с результатами
+    }
+
 };
