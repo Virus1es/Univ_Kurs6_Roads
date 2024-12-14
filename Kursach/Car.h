@@ -14,41 +14,36 @@ public:
     }
 
     // Двигать машину
-    void move(LightState lightState, int centerY) {
+    void move(LightState lightState, int centerY, const std::vector<Car>& cars) {
+        for (const auto& otherCar : cars) {
+            if (&otherCar != this && isTooClose(otherCar)) {
+                return; // Если машина слишком близко к другой, не двигаемся
+            }
+        }
+
         if (direction) { // Движение вправо
             if (y > centerY || x > repairZone.right + 50) {
-                // Если машина в зоне ремонта, она продолжает движение
-                x += speed; // Движение вправо
+                x += speed;
             }
-            else {
-                // Проверка на светофор для верхней дороги
-                if (canMove(lightState) && y < centerY && x < repairZone.left - 150) { // Если машина на верхней дороге и Если не достигли светофора
-                    x += speed; // Движение вправо
-                }
+            else if (canMove(lightState) && y < centerY && x < repairZone.left - 150) {
+                x += speed;
             }
-
-            // Перестроение на нижнюю дорогу
             if (y < centerY && lightState == GreenFirstDirection && x >= repairZone.left - 150) {
-                y += 130; // Перемещаем вниз
+                y += 130;
             }
-
             if (y > centerY && x > repairZone.right + 50) {
-                y -= 130; // перемещаем обратно
+                y -= 130;
             }
         }
         else { // Движение влево
             if (isInRepairZone()) {
-                // Если машина в зоне ремонта, она продолжает движение
-                x -= speed; // Движение влево
+                x -= speed;
             }
-            else {
-                // Проверка на светофор для верхней дороги
-                if (canMove(lightState) && y > centerY && x > repairZone.right + 150) { // Если машина на нижней дороге
-                     // Если не достигли светофора на 150 пикселей
-                    x -= speed; // Движение влево
-                }
-                else if (x <= repairZone.right + 200)
-                    x -= speed; // Движение влево
+            else if (canMove(lightState) && y > centerY && x > repairZone.right + 150) {
+                x -= speed;
+            }
+            else if (x <= repairZone.right + 200) {
+                x -= speed;
             }
         }
     }
@@ -72,8 +67,8 @@ public:
 
     // может ли машина ехать
     bool canMove(LightState lightState) const {
-        // Если светофор красный, и машина не в зоне ремонта, она не может двигаться
-
+        // по направлению определяем какому сигналу следовать
+        // если для машины горит зелёный или она в ремонтной зоне можно ехать
         if (direction) {
             return (lightState == GreenFirstDirection || isInRepairZone());
         }
@@ -85,5 +80,18 @@ public:
     // находиться ли машина на объезде зоны ремонта
     bool isInRepairZone() const {
         return x >= repairZone.left && x <= repairZone.right;
+    }
+
+    // находится ли машина слишком близко к другой
+    bool isTooClose(const Car& other) const {
+        if (direction == other.direction) { // Только для машин, движущихся в одном направлении
+            if (direction) { // Если движение вправо
+                return (other.x > x && other.x - x < 80); // Если другая машина впереди и расстояние меньше 40
+            }
+            else { // Если движение влево
+                return (other.x < x && x - other.x < 80); // Если другая машина впереди и расстояние меньше 40
+            }
+        }
+        return false;
     }
 };

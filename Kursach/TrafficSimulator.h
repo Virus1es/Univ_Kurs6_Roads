@@ -57,7 +57,7 @@ public:
             LightState lightState = car.direction ? leftTrafficLight.getCurrentState() : rightTrafficLight.getCurrentState();
             
             // Передаем состояние светофора, centerY и ссылку на TrafficSimulator
-            car.move(lightState, centerY); 
+            car.move(lightState, centerY, cars);
 
         }
 
@@ -71,16 +71,6 @@ public:
             cars.end()
         );
     }
-
-    //bool isPositionOccupied(int x, int y) {
-    //    for (const auto& car : cars) {
-    //        // Проверяем, находится ли другой автомобиль в пределах 60 пикселей
-    //        if (abs(car.x - x) < 60 && abs(car.y - y) < 50) {
-    //            return true; // Позиция занята
-    //        }
-    //    }
-    //    return false; // Позиция свободна
-    //}
 
     void draw(HDC hdc) {
         // Рисуем ремонтную зону

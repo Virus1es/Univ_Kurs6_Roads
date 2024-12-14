@@ -38,7 +38,6 @@ public:
                 currentState = RedBothDirectionsAfterSecond;
                 timer = redDuration;
                 break;
-
             case RedBothDirectionsAfterSecond:
                 currentState = GreenFirstDirection; // Правый светофор остается зеленым
                 timer = greenDuration;
