@@ -47,6 +47,11 @@ public:
     {
     }
 
+    // правило трёх
+    TrafficSimulator(const TrafficSimulator& simulator) = default;
+    TrafficSimulator& operator=(const TrafficSimulator& simulator) = default;
+    ~TrafficSimulator() {}
+
     void updateTrafficLightDurations(double greenDur, double redDur) {
         leftTrafficLight.setDurations(greenDur, redDur);
         rightTrafficLight.setDurations(greenDur, redDur);

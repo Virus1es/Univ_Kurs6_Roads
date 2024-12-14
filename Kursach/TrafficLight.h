@@ -25,6 +25,11 @@ public:
         redDuration(redDur) {
     }
 
+    // правило трёх
+    TrafficLight(const TrafficLight& light) = default;
+    TrafficLight& operator=(const TrafficLight& light) = default;
+    ~TrafficLight() {}
+
     void setDurations(double greenDur, double redDur) {
         greenDuration = greenDur;
         redDuration = redDur;

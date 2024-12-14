@@ -13,6 +13,11 @@ public:
         : x(x), y(y), speed(speed*4), direction(direction), repairZone(repairZone) {
     }
 
+    // правило трёх
+    Car(const Car& car) = default;
+    Car& operator=(const Car& car) = default;
+    ~Car() {}
+
     // Двигать машину
     void move(LightState lightState, int centerY, const std::vector<Car>& cars) {
         for (const auto& otherCar : cars) {
