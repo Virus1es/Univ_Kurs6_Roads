@@ -118,10 +118,38 @@ public:
 
     // Функция для расчета среднего времени ожидания
     double calculateAverageWaitTime(double N1, double N2, double G1, double G2, double R) {
-        double totalCycleTime = G1 + G2 + R; // Общее время цикла
-        double waitTime1 = (N1 / (N1 + N2)) * (G1 + R / 2); // Среднее время ожидания для первого направления
-        double waitTime2 = (N2 / (N1 + N2)) * (G2 + R / 2); // Среднее время ожидания для второго направления
-        return waitTime1 + waitTime2; // Общее среднее время ожидания
+        double cycle = G1 + G2 + R;
+        double lambda1 = N1 / 3600.0;  // Интенсивность прибытия для первого направления (авто/сек)
+        double lambda2 = N2 / 3600.0;  // Интенсивность прибытия для второго направления (авто/сек)
+
+        // Среднее время ожидания для каждого направления с учетом использования M/G/1
+        double avgWait1 = 0.5 * lambda1 * (cycle * cycle) / (1.0 - lambda1 * G1);
+        double avgWait2 = 0.5 * lambda2 * (cycle * cycle) / (1.0 - lambda2 * G2);
+
+        if (lambda1 * G1 < 1.0) {
+            avgWait1 = 0.5 * lambda1 * (cycle * cycle) / (1.0 - lambda1 * G1);
+        }
+        else {
+            avgWait1 = cycle / 2.0; // Альтернативная формула если есть перегрузка
+        }
+
+        if (lambda2 * G2 < 1.0) {
+            avgWait2 = 0.5 * lambda2 * (cycle * cycle) / (1.0 - lambda2 * G2);
+        }
+        else {
+            avgWait2 = cycle / 2.0; // Альтернативная формула если есть перегрузка
+        }
+
+        // Проверка на NaN (не число)
+        if (isnan(avgWait1)) {
+            avgWait1 = cycle / 2.0;
+        }
+        if (isnan(avgWait2)) {
+            avgWait2 = cycle / 2.0;
+        }
+
+
+        return avgWait1 + avgWait2; // Общее среднее время ожидания
     }
 
     // N1 - количество автомобилей, ожидающих проезда в первом направлении 
