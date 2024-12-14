@@ -24,8 +24,6 @@ RECT repairZone, trafficLightLeft, trafficLightRight;
 double greenDuration = 40.0;
 double redDuration = 55.0;
 
-
-
 // Отправить объявления функций, включенных в этот модуль кода:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);

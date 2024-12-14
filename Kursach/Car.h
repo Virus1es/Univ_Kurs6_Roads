@@ -21,17 +21,20 @@ public:
             }
         }
 
-        if (direction) { // Движение вправо
-            if (y > centerY || x > repairZone.right + 50) {
-                x += speed;
+        if (direction) { // Движение на верхней дороге
+            if (y > centerY) {
+                x -= speed;
             }
-            else if (canMove(lightState) && y < centerY && x < repairZone.left - 150) {
-                x += speed;
+            else if (canMove(lightState) && y < centerY && x > repairZone.right + 150) {
+                x -= speed;
             }
-            if (y < centerY && lightState == GreenFirstDirection && x >= repairZone.left - 150) {
+            else if (x <= repairZone.left - 50) {
+                x -= speed;
+            }
+            if (y < centerY && lightState == GreenFirstDirection && x <= repairZone.right + 150) {
                 y += 130;
             }
-            if (y > centerY && x > repairZone.right + 50) {
+            if (y > centerY && x < repairZone.left - 150) {
                 y -= 130;
             }
         }
@@ -84,13 +87,8 @@ public:
 
     // находится ли машина слишком близко к другой
     bool isTooClose(const Car& other) const {
-        if (direction == other.direction) { // Только для машин, движущихся в одном направлении
-            if (direction) { // Если движение вправо
-                return (other.x > x && other.x - x < 80); // Если другая машина впереди и расстояние меньше 80
-            }
-            else { // Если движение влево
-                return (other.x < x && x - other.x < 80); // Если другая машина впереди и расстояние меньше 80
-            }
+        if (y == other.y) { // Только для машин, движущихся в одном направлении
+            return (other.x < x && x - other.x < 80); // Если другая машина впереди и расстояние меньше 80
         }
         return false;
     }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <algorithm> // Для std::max
+#include <algorithm>
 #include <vector>
 #include <cstdlib>
 #include <random>
@@ -9,8 +9,8 @@
 #include <iostream>
 #include <limits>
 #include <string>
-#include <sstream>      // Для std::ostringstream
-#include <iomanip> // Нужен для std::setprecision
+#include <sstream>
+#include <iomanip>
 #include <cmath>
 #include "framework.h"
 #include "Kursach.h"
@@ -29,6 +29,8 @@ private:
 
     std::mt19937 rng;
     std::exponential_distribution<> expDist1, expDist2;
+
+    double carSpeed; // переменная для хранения скорости машин
 
     double timeUntilNextCarLeft;
     double timeUntilNextCarRight;
@@ -60,7 +62,7 @@ public:
         timeUntilNextCarRight -= deltaTime;
 
         if (timeUntilNextCarLeft <= 0) {
-            cars.emplace_back(centerX - roadWidth / 2, centerY - roadHeight / 4, 5, true, repairZone);
+            cars.emplace_back(centerX + roadWidth / 2, centerY - roadHeight / 4, 5, true, repairZone);
             timeUntilNextCarLeft = expDist1(rng);
         }
         if (timeUntilNextCarRight <= 0) {
@@ -79,8 +81,7 @@ public:
         // Удаляем автомобили, которые выехали за пределы дороги
         cars.erase(
             std::remove_if(cars.begin(), cars.end(), [&](const Car& car) {
-                return (car.direction && car.x > centerX + roadWidth / 2) ||
-                    (!car.direction && car.x < centerX - roadWidth / 2) ||
+                return (car.x < centerX - roadWidth / 2) ||
                     (car.y > centerY + roadHeight / 2); // Условие для нижней дороги
                 }),
             cars.end()
