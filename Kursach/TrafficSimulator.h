@@ -30,8 +30,6 @@ private:
     std::mt19937 rng;
     std::exponential_distribution<> expDist1, expDist2;
 
-    double carSpeed; // переменная для хранения скорости машин
-
     double timeUntilNextCarLeft;
     double timeUntilNextCarRight;
 

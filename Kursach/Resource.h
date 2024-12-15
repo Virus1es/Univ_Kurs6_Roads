@@ -24,7 +24,9 @@
 #define IDC_GREEN_DURATION       1001 // Поле для времени зеленого света
 #define IDC_RED_DURATION         1002 // Поле для времени красного света
 #define IDC_RESTART_BUTTON       1003 // Перезапуск симуляции
-#define IDC_CALCULATE_BUTTON     1004 // Перезапуск симуляции
+#define IDC_CALCULATE_BUTTON     1004 // Расчёт значений
+#define IDC_OPTION_USERDUR       1005 // Пользвательское время смены сигналов светофоров
+#define IDC_OPTION_STANDARTDUR   1006 // Стандартное время смены сигналов светофоров
 #define IDOK                     1  // Кнопка OK
 #define IDCANCEL                 2  // Кнопка Cancel
 

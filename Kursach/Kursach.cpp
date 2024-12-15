@@ -160,18 +160,38 @@ INT_PTR CALLBACK LightDurationDlgProc(HWND hDlg, UINT message, WPARAM wParam, LP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case IDC_OPTION_USERDUR: {
+            CheckDlgButton(hDlg, IDC_OPTION_USERDUR, true);
+            CheckDlgButton(hDlg, IDC_OPTION_STANDARTDUR, false);
+
+            return (INT_PTR)TRUE;
+        }
+        case IDC_OPTION_STANDARTDUR: {
+            CheckDlgButton(hDlg, IDC_OPTION_STANDARTDUR, true);
+            CheckDlgButton(hDlg, IDC_OPTION_USERDUR, false);
+
+            return (INT_PTR)TRUE;
+        }
         case IDOK: {
             BOOL greenValid, redValid;
             UINT greenValue = GetDlgItemInt(hDlg, IDC_GREEN_DURATION, &greenValid, FALSE);
             UINT redValue = GetDlgItemInt(hDlg, IDC_RED_DURATION, &redValid, FALSE);
-
-            if (greenValid && redValid) {
-                *pGreenDuration = greenValue;
-                *pRedDuration = redValue;
-                EndDialog(hDlg, IDOK);
+            // Проверка, какая опция выбрана
+            if (IsDlgButtonChecked(hDlg, IDC_OPTION_USERDUR) == BST_CHECKED) {
+                if (greenValid && redValid) {
+                    *pGreenDuration = greenValue;
+                    *pRedDuration = redValue;
+                    EndDialog(hDlg, IDOK);
+                }
+                else {
+                    MessageBox(hDlg, L"Введите корректные значения.", L"Ошибка", MB_OK | MB_ICONERROR);
+                }
             }
-            else {
-                MessageBox(hDlg, L"Введите корректные значения.", L"Ошибка", MB_OK | MB_ICONERROR);
+            else if (IsDlgButtonChecked(hDlg, IDC_OPTION_STANDARTDUR) == BST_CHECKED) {
+                // Возвращаем стандартное значение
+                *pGreenDuration = 40.0;
+                *pRedDuration = 55.0;
+                EndDialog(hDlg, IDOK);
             }
             return (INT_PTR)TRUE;
         }

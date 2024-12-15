@@ -6,7 +6,7 @@ class Car {
 public:
     int x, y;          // Координаты автомобиля
     int speed;         // Скорость автомобиля
-    bool direction;    // Направление: true - вправо, false - влево
+    bool direction;    // Расположение: true - верх, false - низ
     RECT repairZone;   // Зона ремонта
 
     Car(int x, int y, int speed, bool direction, RECT repairZone)
