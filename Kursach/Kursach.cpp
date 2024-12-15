@@ -156,6 +156,7 @@ INT_PTR CALLBACK LightDurationDlgProc(HWND hDlg, UINT message, WPARAM wParam, LP
         // Установите текущие значения в текстовые поля
         SetDlgItemInt(hDlg, IDC_GREEN_DURATION, static_cast<UINT>(*pGreenDuration), FALSE);
         SetDlgItemInt(hDlg, IDC_RED_DURATION, static_cast<UINT>(*pRedDuration), FALSE);
+        CheckDlgButton(hDlg, IDC_OPTION_USERDUR, true);
         return (INT_PTR)TRUE;
 
     case WM_COMMAND:
